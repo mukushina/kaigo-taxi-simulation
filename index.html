@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>介護タクシー料金シミュレーター</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
 <body class="bg-green-50 text-gray-800">
   <div class="max-w-3xl mx-auto py-10 px-4">
     <h1 class="text-2xl font-bold text-center mb-6">介護タクシー ぬっく<br>料金シミュレーター</h1>
@@ -22,7 +20,7 @@
       <input type="text" id="end-address" class="w-full p-2 border rounded" placeholder="例：大阪市北区梅田" />
     </div>
 
-    <!-- 割引・オプション -->
+    <!-- 割増・割引 -->
     <div class="mb-6">
       <label class="block font-semibold mb-2">割増・割引</label>
       <label class="block"><input type="checkbox" id="night" /> 深夜（22時〜5時）</label>
@@ -32,9 +30,9 @@
     <!-- 介助 -->
     <div class="mb-6">
       <label class="block font-semibold mb-2">介助内容</label>
-      <label class="block"><input type="radio" name="assistance" value="basic"checked  /> 基本介助(車への乗降介助など)（500円）</label>
-      <label class="block"><input type="radio" name="assistance" value="indoor" /> 室内介助(30分間までごとに)（1,500円）</label>
-      <label class="block"><input type="radio" name="assistance" value="inHospital" /> 院内介助(院内付き添いなど 1時間までごとに)（3,000円）</label>
+      <p class="text-sm text-gray-700 ml-4">※ 基本介助（車への乗降介助など）：<strong>500円</strong> はすべてのご利用に含まれます。</p>
+      <label class="block"><input type="radio" name="assistance" value="indoor" /> 室内介助（30分間ごと）1,500円</label>
+      <label class="block"><input type="radio" name="assistance" value="inHospital" /> 院内介助（1時間ごと）3,000円</label>
     </div>
 
     <!-- 機材 -->
@@ -47,10 +45,10 @@
     <!-- 医療手技 -->
     <div class="mb-6">
       <label class="block font-semibold mb-2">医療手技</label>
-      <label class="block"><input type="checkbox" id="oxygen1L" data-label="酸素1L" /> 酸素1L(1時間までごとに)（1,000円）</label>
-      <label class="block"><input type="checkbox" id="oxygen2L" data-label="酸素2L" /> 酸素2L(1時間までごとに)（2,000円）</label>
-      <label class="block"><input type="checkbox" id="oxygen3L" data-label="酸素3L" /> 酸素3L(1時間までごとに)（3,000円）</label>
-      <label class="block"><input type="checkbox" id="oxygen4L" data-label="酸素4L" /> 酸素4L(1時間までごとに)（4,000円）</label>
+      <label class="block"><input type="checkbox" id="oxygen1L" data-label="酸素1L" /> 酸素1L（1,000円）</label>
+      <label class="block"><input type="checkbox" id="oxygen2L" data-label="酸素2L" /> 酸素2L（2,000円）</label>
+      <label class="block"><input type="checkbox" id="oxygen3L" data-label="酸素3L" /> 酸素3L（3,000円）</label>
+      <label class="block"><input type="checkbox" id="oxygen4L" data-label="酸素4L" /> 酸素4L（4,000円）</label>
       <label class="block"><input type="checkbox" id="infusion" data-label="輸液管理" /> 輸液管理（2,000円）</label>
       <label class="block"><input type="checkbox" id="injection" data-label="注入" /> 注入（2,000円）</label>
       <label class="block"><input type="checkbox" id="suction" data-label="吸引" /> 吸引（2,000円）</label>
@@ -62,11 +60,6 @@
       <h2 class="font-bold mb-2">概算料金：<span id="total-fee" class="text-xl text-green-800">-</span> 円</h2>
       <div id="fee-details" class="text-sm text-gray-700 space-y-1"></div>
       <p class="text-xs text-gray-500 mt-4">※上記は概算料金です。交通状況等により変動します。</p>
-      <div class="text-xs text-gray-500 mt-4 space-y-1">
-        <p>※乗車料金は認可運賃です。一般の大型車タクシー料金に準じています。</p>
-        <p>※旅行等、長時間の貸切については、営業所にお問い合わせください。</p>
-        <p>※時間制運賃については、割増および遠距離割引は適用しません。</p>
-      </div>
     </div>
   </div>
 
@@ -127,23 +120,24 @@
         let total = 0;
         const details = [];
 
-        if (distance <= PRICE_CONFIG.baseDistanceKm) {
-          total += PRICE_CONFIG.baseFare;
-          details.push({ label: "初乗運賃", value: PRICE_CONFIG.baseFare });
-        } else {
-          total += PRICE_CONFIG.baseFare;
+        total += PRICE_CONFIG.baseFare;
+        details.push({ label: "初乗運賃", value: PRICE_CONFIG.baseFare });
+
+        if (distance > PRICE_CONFIG.baseDistanceKm) {
           const extraM = (distance - PRICE_CONFIG.baseDistanceKm) * 1000;
           const extraFare = Math.ceil(extraM * PRICE_CONFIG.addFarePerM / 100) * 100;
           total += extraFare;
-          details.push({ label: "初乗運賃", value: PRICE_CONFIG.baseFare });
           details.push({ label: "加算運賃", value: extraFare });
         }
 
         total += PRICE_CONFIG.maxPickupFare;
         details.push({ label: "迎車料金", value: PRICE_CONFIG.maxPickupFare });
 
+        total += PRICE_CONFIG.assistance.basic;
+        details.push({ label: "基本介助", value: PRICE_CONFIG.assistance.basic });
+
         const assistanceType = document.querySelector('input[name="assistance"]:checked')?.value;
-        if (assistanceType && PRICE_CONFIG.assistance[assistanceType] > 0) {
+        if (assistanceType && PRICE_CONFIG.assistance[assistanceType]) {
           const fee = PRICE_CONFIG.assistance[assistanceType];
           total += fee;
           details.push({ label: `介助：${assistanceType}`, value: fee });
@@ -191,6 +185,7 @@
       }
     });
   </script>
+
   <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDE3emqaNVVROLWUMTUUoyrKcavsoA9x8c&libraries=places&callback=initMap"></script>
 </body>
 </html>
